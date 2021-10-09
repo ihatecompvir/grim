@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use grim::{Platform, SystemInfo};
 use grim::io::*;
-use grim::scene::{Object, ObjectDir, PackedObject, Tex};
+use grim::scene::{Object, ObjectDir, ObjectReadWrite, PackedObject, Tex};
 use grim::texture::{write_rgba_to_file};
 
 // TODO: Use this error somewhere or refactor
@@ -114,6 +114,26 @@ fn extract_contents(milo_dir: &ObjectDir, output_path: &Path, convert_texures: b
                     _ => {
                         continue; // Shouldn't be reached
                     }
+                }
+            }
+        }
+
+        // Convert meshes
+        if obj.get_type() == "Mesh" {
+            if let Some(unpacked) = obj.unpack(info) {
+                if let Object::Mesh(mesh) = unpacked {
+                    let mut data = Vec::new();
+                    let mut stream = MemoryStream::from_vector_as_read_write(&mut data);
+                    mesh.save(&mut stream, info).unwrap();
+
+                    let packed = PackedObject {
+                        name: obj.get_name().to_owned(),
+                        object_type: obj.get_type().to_owned(),
+                        data,
+                    };
+
+                    extract_packed_object(&packed, &entry_dir).unwrap();
+                    continue;
                 }
             }
         }
