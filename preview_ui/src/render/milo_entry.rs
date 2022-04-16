@@ -79,6 +79,8 @@ pub fn render_milo_entry(
 
         let mut positions = Vec::new();
         let mut normals = Vec::new();
+        let mut bones = Vec::new();
+        let mut weights = Vec::new();
         let mut tangents = Vec::new();
         let mut uvs = Vec::new();
 
@@ -87,7 +89,9 @@ pub fn render_milo_entry(
 
             // TODO: Figure out normals/tangents
             //normals.push([vert.normals.x, vert.normals.y, vert.normals.z]);
-            normals.push([1.0, 1.0, 1.0]);
+            normals.push([1.0, 1.0, 1.0]); // Might need to be (0.0, 0.0, 1.0)
+            bones.push(vert.bones);
+            weights.push(vert.weights);
             tangents.push([0.0, 0.0, 0.0, 1.0]);
 
             uvs.push([vert.uv.u, vert.uv.v]);
@@ -100,6 +104,8 @@ pub fn render_milo_entry(
         bevy_mesh.set_indices(Some(indices));
         bevy_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         bevy_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        bevy_mesh.insert_attribute(Mesh::ATTRIBUTE_JOINT_INDEX, bones);
+        bevy_mesh.insert_attribute(Mesh::ATTRIBUTE_JOINT_WEIGHT, weights);
         bevy_mesh.insert_attribute(Mesh::ATTRIBUTE_TANGENT, tangents);
         bevy_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
 
