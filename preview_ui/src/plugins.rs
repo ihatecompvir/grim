@@ -7,12 +7,14 @@ pub struct GrimPlugin;
 
 // Using until bevy_fly_camera is updated
 // https://github.com/mcpar-land/bevy_fly_camera/pull/19
+// https://github.com/bevyengine/bevy/blob/main/crates/bevy_internal/src/default_plugins.rs
 impl PluginGroup for MinimalPlugins {
     fn build(&mut self, group: &mut PluginGroupBuilder) {
         group
             .add(bevy::log::LogPlugin::default())
             .add(bevy::core::CorePlugin::default())
             .add(bevy::transform::TransformPlugin::default())
+            .add(bevy::hierarchy::HierarchyPlugin::default())
             .add(bevy::diagnostic::DiagnosticsPlugin::default())
             .add(bevy::input::InputPlugin::default())
             .add(bevy::window::WindowPlugin::default())
@@ -24,7 +26,8 @@ impl PluginGroup for MinimalPlugins {
             .add(bevy::winit::WinitPlugin::default())
             .add(bevy::render::RenderPlugin::default())
             .add(bevy::core_pipeline::CorePipelinePlugin::default())
-            .add(bevy::pbr::PbrPlugin::default());
+            .add(bevy::pbr::PbrPlugin::default())
+            .add(bevy::animation::AnimationPlugin::default());
     }
 }
 
