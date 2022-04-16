@@ -14,7 +14,7 @@ use events::*;
 use gui::*;
 use render::{render_milo, render_milo_entry};
 use settings::*;
-use bevy::{prelude::*, render::camera::PerspectiveProjection, window::{PresentMode, WindowMode, WindowResized}};
+use bevy::{prelude::*, render::{camera::PerspectiveProjection, mesh::skinning::SkinnedMeshInverseBindposes}, window::{PresentMode, WindowMode, WindowResized}};
 use bevy_egui::{EguiContext, EguiPlugin, egui, egui::{Color32, Context, Pos2, Ui}};
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 use grim::*;
@@ -249,6 +249,7 @@ fn setup_args(
 fn update_state(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut skinned_mesh_inverse_bindposes_assets: ResMut<Assets<SkinnedMeshInverseBindposes>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut textures: ResMut<Assets<Image>>,
     mut update_events: EventReader<AppEvent>,
@@ -299,6 +300,7 @@ fn update_state(
                 render_milo_entry(
                     &mut commands,
                     &mut meshes,
+                    &mut skinned_mesh_inverse_bindposes_assets,
                     &mut materials,
                     &mut textures,
                     milo,

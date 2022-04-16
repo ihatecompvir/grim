@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::render::mesh::skinning::{SkinnedMesh, SkinnedMeshInverseBindposes};
 use bevy::render::render_resource::{AddressMode, Extent3d, TextureDimension, TextureFormat};
 
 use itertools::*;
@@ -20,6 +21,7 @@ use super::{map_matrix, MiloLoader};
 pub fn render_milo_entry(
     commands: &mut Commands,
     bevy_meshes: &mut ResMut<Assets<Mesh>>,
+    skinned_mesh_inverse_bindposes_assets: &mut ResMut<Assets<SkinnedMeshInverseBindposes>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
     bevy_textures: &mut ResMut<Assets<Image>>,
     milo: &ObjectDir,
@@ -172,8 +174,13 @@ pub fn render_milo_entry(
                     material: materials.add(bevy_mat),
                     transform: Transform::from_matrix(mat),
                     ..Default::default()
-                }).insert(WorldMesh {
+                })
+                .insert(WorldMesh {
                     name: mesh.name.to_owned(),
+                })
+                .insert(SkinnedMesh {
+                    inverse_bindposes: skinned_mesh_inverse_bindposes_assets.add(SkinnedMeshInverseBindposes::from(vec![])),
+                    joints: vec![]
                 });
             });
     }
