@@ -2,14 +2,24 @@ use crate::io::{BinaryStream, SeekFrom, Stream};
 use crate::scene::*;
 use crate::SystemInfo;
 use grim_traits::scene::*;
+use thiserror::Error as ThisError;
 use std::error::Error;
+
+#[derive(Debug, ThisError)]
+pub enum MatLoadError {
+    #[error("Mat version {version} is not supported")]
+    MatVersionNotSupported {
+        version: u32
+    },
+}
 
 fn is_version_supported(version: u32) -> bool {
     match version {
         21 => true,      // GH1
-        27 | 28 => true, // GH2/GH2 360
+        25 | 27 | 28 => true, // GH2 4-song/GH2/GH2 360
         41 | 47 => true, // RB1/RB2
         55 | 56 => true, // TBRB/GDRB
+        68 => true,      // RB3
         _ => false
     }
 }
@@ -20,8 +30,9 @@ impl ObjectReadWrite for MatObject {
 
         let version = reader.read_uint32()?;
         if !is_version_supported(version) {
-            // TODO: Switch to custom error
-            panic!("Mat version \"{}\" is not supported!", version);
+            return Err(Box::new(MatLoadError::MatVersionNotSupported {
+                version
+            }));
         }
 
         load_object(self, &mut reader, info)?;
@@ -108,16 +119,21 @@ impl ObjectReadWrite for MatObject {
         }*/
 
         if version > 25 {
-            if version <= 55 {
+            if version <= 55 || version > 56 {
                 // Read as boolean
                 self.per_pixel_lit = match reader.read_boolean()? {
                     false => PerPixel::kPerPixelOff,
                     _ => PerPixel::kPerPixelAllNgPlatforms,
                 }
             } else {
-                // Read as enum
+                // Read as enum for GDRB
                 self.per_pixel_lit = reader.read_uint32()?.into();
             }
+        }
+
+        // TODO: Reverse RB3 mat
+        if version >= 68 {
+            return Ok(());
         }
 
         if version >= 27 && version < 50 {
@@ -335,6 +351,7 @@ impl ObjectReadWrite for MatObject {
 
         if version > 27 {
             stream.write_uint32(self.stencil_mode as u32)?;
+        } else {
             return Ok(()); // Exit early
         }
 

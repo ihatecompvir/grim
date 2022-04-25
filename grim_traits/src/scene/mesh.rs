@@ -70,7 +70,6 @@ pub struct UV {
     pub v: f32,
 }
 
-#[derive(Default)]
 pub struct Vert {
     pub pos: Vector4,
     pub normals: Vector4,
@@ -78,6 +77,25 @@ pub struct Vert {
     pub bones: [u16; 4],
     pub weights: [f32; 4],
     pub tangent: Vector4,
+}
+
+impl Default for Vert {
+    fn default() -> Vert {
+        Vert {
+            pos: Vector4::default(),
+            normals: Vector4::default(),
+            uv: UV::default(),
+            bones: [0, 1, 2, 3],
+            weights: [1.0, 1.0, 1.0, 1.0],
+            tangent: Vector4 {
+                // TODO: Verify this is correct
+                x:  1.0,
+                y:  0.0,
+                z:  0.0,
+                w: -1.0,
+            }
+        }
+    }
 }
 
 pub trait RndMesh : Draw + MiloObject + Trans {
@@ -118,4 +136,7 @@ pub trait RndMesh : Draw + MiloObject + Trans {
 
     fn get_exclude_from_self_shadow(&self) -> bool;
     fn set_exclude_from_self_shadow(&mut self, exclude: bool);
+
+    fn get_has_ao_calculation(&self) -> bool;
+    fn set_has_ao_calculation(&mut self, ao_calc: bool);
 }

@@ -11,6 +11,7 @@ fn is_version_supported(version: u32) -> bool {
         28 => true, // GH2/GH2 360
         34 => true, // RB1/RB2
         36 | 37 => true, // TBRB/GDRB
+        38 => true, // RB3
         _ => false
     }
 }
@@ -48,12 +49,24 @@ impl ObjectReadWrite for MeshObject {
 
             // If next gen, read stride + 1 constant
             if is_ng {
-                reader.seek(SeekFrom::Current(8))?; // (36, 1)
+                reader.seek(SeekFrom::Current(8))?; // (36, 1) | (40, 2)
             }
         }
 
         self.vertices.clear();
+        self.raw_vertices.clear();
         for _ in 0..vert_count {
+            // TODO: Remove once next gen vertex format is figured out
+            if version >= 36 && is_ng {
+                // Read raw vert data
+                let mut raw_vert = [0u8; 36];
+                let data = reader.read_bytes(36)?;
+                raw_vert.copy_from_slice(data.as_slice());
+
+                reader.seek(SeekFrom::Current(-36))?;
+                self.raw_vertices.push(raw_vert);
+            }
+
             let mut vec = Vert::default();
 
             // Position
@@ -65,6 +78,12 @@ impl ObjectReadWrite for MeshObject {
             }
 
             if version < 35 || !is_ng {
+                if version >= 38 {
+                    // Skip extra bytes
+                    // TODO: Figure out what this data is...
+                    reader.seek(SeekFrom::Current(16))?;
+                }
+
                 // Normals
                 vec.normals.x = reader.read_float32()?;
                 vec.normals.y = reader.read_float32()?;
@@ -73,15 +92,28 @@ impl ObjectReadWrite for MeshObject {
                     vec.normals.w = reader.read_float32()?;
                 }
 
-                // Weights
-                vec.weights[0] = reader.read_float32()?;
-                vec.weights[1] = reader.read_float32()?;
-                vec.weights[2] = reader.read_float32()?;
-                vec.weights[3] = reader.read_float32()?;
+                if version >= 38 {
+                    // Packed in different order?
+                    // UVs
+                    vec.uv.u = reader.read_float32()?;
+                    vec.uv.v = reader.read_float32()?;
 
-                // UVs
-                vec.uv.u = reader.read_float32()?;
-                vec.uv.v = reader.read_float32()?;
+                    // Weights
+                    vec.weights[0] = reader.read_float32()?;
+                    vec.weights[1] = reader.read_float32()?;
+                    vec.weights[2] = reader.read_float32()?;
+                    vec.weights[3] = reader.read_float32()?;
+                } else {
+                    // Weights
+                    vec.weights[0] = reader.read_float32()?;
+                    vec.weights[1] = reader.read_float32()?;
+                    vec.weights[2] = reader.read_float32()?;
+                    vec.weights[3] = reader.read_float32()?;
+
+                    // UVs
+                    vec.uv.u = reader.read_float32()?;
+                    vec.uv.v = reader.read_float32()?;
+                }
 
                 if version >= 34 {
                     // Bone indices
@@ -90,11 +122,17 @@ impl ObjectReadWrite for MeshObject {
                     vec.bones[2] = reader.read_uint16()?;
                     vec.bones[3] = reader.read_uint16()?;
 
-                    // Tangent?
-                    vec.tangent.x = reader.read_float32()?;
-                    vec.tangent.y = reader.read_float32()?;
-                    vec.tangent.z = reader.read_float32()?;
-                    vec.tangent.w = reader.read_float32()?;
+                    if version >= 38 {
+                        // Skip unknown bytes
+                        // TODO: Figure out what this data is...
+                        reader.seek(SeekFrom::Current(16))?;
+                    } else {
+                        // Tangent?
+                        vec.tangent.x = reader.read_float32()?;
+                        vec.tangent.y = reader.read_float32()?;
+                        vec.tangent.z = reader.read_float32()?;
+                        vec.tangent.w = reader.read_float32()?;
+                    }
                 }
             } else {
                 let uv_check = reader.read_int32()?;
@@ -139,6 +177,12 @@ impl ObjectReadWrite for MeshObject {
                     vec.bones[1] = reader.read_uint16()?;
                     vec.bones[2] = reader.read_uint16()?;
                     vec.bones[3] = reader.read_uint16()?;
+                }
+
+                if version >= 38 {
+                    // Skip extra bytes
+                    // TODO: Figure out what this data is...
+                    reader.seek(SeekFrom::Current(4))?;
                 }
             }
 
@@ -205,8 +249,10 @@ impl ObjectReadWrite for MeshObject {
             self.keep_mesh_data = reader.read_boolean()?;
         }
 
-        if version >= 37 {
+        if version == 37 {
             self.exclude_from_self_shadow = reader.read_boolean()?;
+        } else if version >= 38 {
+            self.has_ao_calculation = reader.read_boolean()?;
         }
 
         // TODO: Parse extra data from previous gen platforms
@@ -245,56 +291,64 @@ impl ObjectReadWrite for MeshObject {
                 // TODO: Determine if value changes after v37
                 let vert_stride = 36;
 
-                stream.write_uint32(1)?; // Some constant
                 stream.write_uint32(vert_stride)?;
+                stream.write_uint32(1)?; // Some constant
             }
         }
 
-        // Write vertices
-        // TODO: Separate into functions and use conditionals before loop iteration
-        for v in &self.vertices {
-            // Position
-            stream.write_float32(v.pos.x)?;
-            stream.write_float32(v.pos.y)?;
-            stream.write_float32(v.pos.z)?;
-            if version == 34 {
-                stream.write_float32(v.pos.w)?;
+        // TODO: Remove once next gen vertex format is figured out
+        if version >= 36 && is_ng && self.vertices.len() == self.raw_vertices.len() {
+            // Write raw vertices
+            for raw_vert in self.raw_vertices.iter() {
+                stream.write_bytes(raw_vert)?;
             }
-
-            if version < 35 || !is_ng {
-                // Normals
-                stream.write_float32(v.normals.x)?;
-                stream.write_float32(v.normals.y)?;
-                stream.write_float32(v.normals.z)?;
+        } else {
+            // Write vertices
+            // TODO: Separate into functions and use conditionals before loop iteration
+            for v in &self.vertices {
+                // Position
+                stream.write_float32(v.pos.x)?;
+                stream.write_float32(v.pos.y)?;
+                stream.write_float32(v.pos.z)?;
                 if version == 34 {
-                    stream.write_float32(v.normals.w)?;
+                    stream.write_float32(v.pos.w)?;
                 }
 
-                // Weights
-                stream.write_float32(v.weights[0])?;
-                stream.write_float32(v.weights[1])?;
-                stream.write_float32(v.weights[2])?;
-                stream.write_float32(v.weights[3])?;
+                if version < 35 || !is_ng {
+                    // Normals
+                    stream.write_float32(v.normals.x)?;
+                    stream.write_float32(v.normals.y)?;
+                    stream.write_float32(v.normals.z)?;
+                    if version == 34 {
+                        stream.write_float32(v.normals.w)?;
+                    }
 
-                // UVs
-                stream.write_float32(v.uv.u)?;
-                stream.write_float32(v.uv.v)?;
+                    // Weights
+                    stream.write_float32(v.weights[0])?;
+                    stream.write_float32(v.weights[1])?;
+                    stream.write_float32(v.weights[2])?;
+                    stream.write_float32(v.weights[3])?;
 
-                if version >= 34 {
-                    // Bone indices
-                    stream.write_uint16(v.bones[0])?;
-                    stream.write_uint16(v.bones[1])?;
-                    stream.write_uint16(v.bones[2])?;
-                    stream.write_uint16(v.bones[3])?;
+                    // UVs
+                    stream.write_float32(v.uv.u)?;
+                    stream.write_float32(v.uv.v)?;
 
-                    // Tangent?
-                    stream.write_float32(v.tangent.x)?;
-                    stream.write_float32(v.tangent.y)?;
-                    stream.write_float32(v.tangent.z)?;
-                    stream.write_float32(v.tangent.w)?;
+                    if version >= 34 {
+                        // Bone indices
+                        stream.write_uint16(v.bones[0])?;
+                        stream.write_uint16(v.bones[1])?;
+                        stream.write_uint16(v.bones[2])?;
+                        stream.write_uint16(v.bones[3])?;
+
+                        // Tangent?
+                        stream.write_float32(v.tangent.x)?;
+                        stream.write_float32(v.tangent.y)?;
+                        stream.write_float32(v.tangent.z)?;
+                        stream.write_float32(v.tangent.w)?;
+                    }
+                } else {
+                    todo!("Figure out how ng verts are packed in v36 meshes");
                 }
-            } else {
-                todo!("Figure out how ng verts are packed in v36 meshes");
             }
         }
 
@@ -342,8 +396,10 @@ impl ObjectReadWrite for MeshObject {
             stream.write_boolean(self.keep_mesh_data)?;
         }
 
-        if version >= 37 {
+        if version == 37 {
             stream.write_boolean(self.exclude_from_self_shadow)?;
+        } else if version >= 38 {
+            stream.write_boolean(self.has_ao_calculation)?;
         }
 
         Ok(())

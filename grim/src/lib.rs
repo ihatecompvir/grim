@@ -1,6 +1,10 @@
+#![allow(unused_imports)]
+
 pub mod ark;
+pub mod dta;
 pub mod io;
-pub mod model;
+#[cfg(feature = "midi")] pub mod midi;
+#[cfg(feature = "model")] pub mod model;
 pub mod scene;
 mod system;
 pub mod texture;

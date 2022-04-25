@@ -1,13 +1,13 @@
-use bevy_egui::{EguiContext, EguiPlugin, egui, egui::{Color32, CtxRef, Pos2, Ui}};
+use bevy_egui::{EguiContext, EguiPlugin, egui, egui::{Color32, Context, Pos2, Ui}};
 use super::{AppSettings, AppState, ArkDirNode, AppEvent};
 
-pub fn render_toolbar(ctx: &mut &CtxRef, settings: &mut AppSettings, state: &mut AppState) {
+pub fn render_toolbar(ctx: &mut &Context, settings: &mut AppSettings, state: &mut AppState) {
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         // ui.heading("Main");
 
         egui::menu::bar(ui, |ui| {
             // File dropdown
-            egui::menu::menu(ui, "File", |ui| {
+            egui::menu::menu_button(ui, "File", |ui| {
                 ui.set_min_width(80.0);
 
                 ui.button("Open");
@@ -27,7 +27,7 @@ pub fn render_toolbar(ctx: &mut &CtxRef, settings: &mut AppSettings, state: &mut
             });
 
             // Edit dropdown
-            egui::menu::menu(ui, "Edit", |ui| {
+            egui::menu::menu_button(ui, "Edit", |ui| {
                 ui.set_min_width(80.0);
 
                 ui.button("Undo");
@@ -35,7 +35,7 @@ pub fn render_toolbar(ctx: &mut &CtxRef, settings: &mut AppSettings, state: &mut
             });
 
             // View dropdown
-            egui::menu::menu(ui, "View", |ui| {
+            egui::menu::menu_button(ui, "View", |ui| {
                 ui.set_min_width(80.0);
 
                 if ui.checkbox(&mut settings.show_controls, "Controls").changed() {
@@ -44,7 +44,7 @@ pub fn render_toolbar(ctx: &mut &CtxRef, settings: &mut AppSettings, state: &mut
             });
 
             // Tools dropdown
-            egui::menu::menu(ui, "Tools", |ui| {
+            egui::menu::menu_button(ui, "Tools", |ui| {
                 ui.set_min_width(80.0);
 
                 if ui.button("Options").clicked() {
@@ -53,7 +53,7 @@ pub fn render_toolbar(ctx: &mut &CtxRef, settings: &mut AppSettings, state: &mut
             });
 
             // Help dropdown
-            egui::menu::menu(ui, "Help", |ui| {
+            egui::menu::menu_button(ui, "Help", |ui| {
                 ui.set_min_width(120.0);
 
                 ui.button("About");

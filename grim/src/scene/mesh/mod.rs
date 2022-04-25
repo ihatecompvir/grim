@@ -6,7 +6,10 @@ pub use io::*;
 
 #[milo(RndMesh)]
 #[milo_super(Draw, Trans)]
-pub struct MeshObject {}
+pub struct MeshObject {
+    // Using until packed next gen verts are figured out
+    pub raw_vertices: Vec<[u8; 36]>
+}
 
 impl Default for MeshObject {
     fn default() -> MeshObject {
@@ -43,12 +46,32 @@ impl Default for MeshObject {
             volume: Volume::kVolumeTriangles,
 
             vertices: Vec::new(),
+            raw_vertices: Vec::new(),
             faces: Vec::new(),
 
             face_groups: Vec::new(),
             bones: Vec::new(),
             keep_mesh_data: false,
             exclude_from_self_shadow: false,
+            has_ao_calculation: false,
+        }
+    }
+}
+
+impl MeshObject {
+    pub fn recompute_face_groups(&mut self) {
+        self.face_groups.clear();
+
+        let mut face_count = self.faces.len() as u32;
+
+        while face_count > 0 {
+            if face_count < 255 {
+                self.face_groups.push(face_count as u8);
+                break;
+            }
+
+            self.face_groups.push(255);
+            face_count -= 255;
         }
     }
 }
