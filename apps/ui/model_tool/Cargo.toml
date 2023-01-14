@@ -1,0 +1,18 @@
+[package]
+name = "model_tool"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy = { version = "0.9.0" }
+bevy_asset_loader = "0.14.1"
+bevy_egui = { version = "0.18.0", features = [ "immutable_ctx" ] }
+bevy_fly_camera = { git = "https://github.com/PikminGuts92/bevy_fly_camera", branch = "bevy-0.9" }
+bevy_infinite_grid = "0.6.0"
+grim = { workspace = true }
+itertools = { workspace = true }
+# native-dialog = "0.6.1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
