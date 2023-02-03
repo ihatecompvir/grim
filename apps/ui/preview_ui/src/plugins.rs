@@ -35,6 +35,7 @@ impl PluginGroup for MinimalPlugins {
             .add(bevy::core_pipeline::CorePipelinePlugin::default())
             .add(bevy::pbr::PbrPlugin::default())
             .add(bevy::animation::AnimationPlugin::default())
+            .add(bevy::pbr::wireframe::WireframePlugin)
     }
 }
 
@@ -62,6 +63,9 @@ impl Plugin for GrimPlugin {
                 },
                 ..Default::default()
             }))
+            .insert_resource(bevy::pbr::wireframe::WireframeConfig {
+                global: app_settings.show_wireframes
+            })
             .insert_resource(app_state)
             .insert_resource(app_settings);
     }
